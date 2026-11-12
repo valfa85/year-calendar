@@ -1,18 +1,18 @@
 // Lets Year Calendar open without an internet connection once installed.
 // Online: always fetches the latest version (so edits you publish show up next launch).
 // Offline: uses the last saved copy.
-const CACHE = "year-calendar-v1";
+const CACHE = "year-calendar-v2";
 const FILES = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./icons/icon.svg",
-  "./icons/favicon-32.png",
-  "./icons/icon-48.png",
-  "./icons/icon-96.png",
-  "./icons/icon-192.png",
-  "./icons/icon-256.png",
-  "./icons/icon-512.png",
+  "./icon.svg",
+  "./favicon-32.png",
+  "./icon-48.png",
+  "./icon-96.png",
+  "./icon-192.png",
+  "./icon-256.png",
+  "./icon-512.png",
 ];
 
 self.addEventListener("install", event => {

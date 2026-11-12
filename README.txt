@@ -5,7 +5,7 @@ A year-at-a-glance calendar in the Windows 11 style. It runs inside Microsoft Ed
 so Smart App Control isn't involved and nothing needs installing or signing.
 
 Files: index.html (the app), manifest.webmanifest (app name/icon), sw.js (offline support),
-icons\ (app icons).
+and the icon files (icon*.png, icon.svg, favicon-32.png).
 
 
 TRY IT NOW
@@ -22,7 +22,7 @@ PUT IT ONLINE (free, GitHub Pages)
    - Public
    - Create repository
 3. On the next page click "uploading an existing file".
-   Drag in ALL the files and the icons folder from this folder. Click "Commit changes".
+   Drag in ALL the files from this folder (there are no subfolders). Click "Commit changes".
 4. Settings > Pages > "Deploy from a branch" > Branch: main, folder: / (root) > Save.
 5. After a minute or two the app is live at:
        https://YOUR-USERNAME.github.io/year-calendar/

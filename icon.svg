@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E9EEF5"/>
+    </linearGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2B88D8"/><stop offset="1" stop-color="#0F5FB0"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C9D6E6"/><stop offset="1" stop-color="#B4C4D8"/>
+    </linearGradient>
+    <linearGradient id="hl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A96DD"/><stop offset="1" stop-color="#0F6CBD"/>
+    </linearGradient>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#0B2A4A" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <g filter="url(#sh)">
+    <rect x="24" y="34" width="208" height="198" rx="30" fill="url(#page)"/>
+    <path d="M54 34h148a30 30 0 0 1 30 30v26H24V64a30 30 0 0 1 30-30z" fill="url(#band)"/>
+  </g>
+  <rect x="76" y="18" width="18" height="40" rx="9" fill="#0B4F94"/>
+  <rect x="162" y="18" width="18" height="40" rx="9" fill="#0B4F94"/>
+  <g>
+    <rect x="48"  y="108" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="91"  y="108" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="134" y="108" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="177" y="108" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="48"  y="149" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="91"  y="149" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="134" y="149" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="177" y="149" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="48"  y="190" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="91"  y="190" width="34" height="30" rx="7" fill="url(#tile)"/>
+    <rect x="134" y="190" width="34" height="30" rx="7" fill="url(#hl)"/>
+    <rect x="177" y="190" width="34" height="30" rx="7" fill="url(#tile)"/>
+  </g>
+</svg>
