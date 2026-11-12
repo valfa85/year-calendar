@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Year Calendar</title>
+<meta name="description" content="A compact year-at-a-glance calendar with ISO week numbers and England & Wales bank holidays.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<!-- Colour of the window's title bar / caption buttons when installed as an app -->
+<meta name="theme-color" content="#f3f3f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#202020" media="(prefers-color-scheme: dark)">
+<style>
+/*
+  Year Calendar: Windows 11 (Fluent) look in a web page.
+  Colours are Windows 11's own light/dark values. The months are drawn at a fixed
+  design size and zoomed to fit the window, switching between 4x3, 3x4, 2x6 and 6x2.
+*/
+:root {
+  --base: #f3f3f3;                       /* window background (Mica stand-in) */
+  --layer: rgba(255, 255, 255, 0.5);     /* lighter content layer */
+  --layer-stroke: rgba(0, 0, 0, 0.0578);
+  --text-1: rgba(0, 0, 0, 0.896);
+  --text-2: rgba(0, 0, 0, 0.606);
+  --text-3: rgba(0, 0, 0, 0.446);
+  --subtle-hover: rgba(0, 0, 0, 0.0373);
+  --subtle-press: rgba(0, 0, 0, 0.0241);
+  --divider: rgba(0, 0, 0, 0.0803);
+  --accent: #005fb8;
+  --on-accent: #ffffff;
+  --holiday: #0f7b0f;
+  --tip-bg: #f9f9f9;
+  --tip-stroke: rgba(0, 0, 0, 0.0578);
+  --focus-outer: rgba(0, 0, 0, 0.896);
+  --focus-inner: #ffffff;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --base: #202020;
+    --layer: rgba(58, 58, 58, 0.3);
+    --layer-stroke: rgba(0, 0, 0, 0.1);
+    --text-1: #ffffff;
+    --text-2: rgba(255, 255, 255, 0.786);
+    --text-3: rgba(255, 255, 255, 0.544);
+    --subtle-hover: rgba(255, 255, 255, 0.0605);
+    --subtle-press: rgba(255, 255, 255, 0.0419);
+    --divider: rgba(255, 255, 255, 0.0837);
+    --accent: #60cdff;
+    --on-accent: #000000;
+    --holiday: #6ccb5f;
+    --tip-bg: #2c2c2c;
+    --tip-stroke: rgba(0, 0, 0, 0.2);
+    --focus-outer: #ffffff;
+    --focus-inner: rgba(0, 0, 0, 0.7);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--base);
+  color: var(--text-1);
+  font-family: var(--font);
+  font-size: 14px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.app { height: 100%; display: flex; flex-direction: column; }
+
+/* Title bar strip: only shown when installed as an app with the title bar overlay */
+.titlebar { display: none; }
+@media (display-mode: window-controls-overlay) {
+  .titlebar {
+    display: flex; align-items: center; gap: 10px;
+    position: fixed;
+    left: env(titlebar-area-x, 0); top: env(titlebar-area-y, 0);
+    width: env(titlebar-area-width, 100%); height: env(titlebar-area-height, 32px);
+    padding-left: 14px;
+    font-size: 12px; color: var(--text-1);
+    app-region: drag; -webkit-app-region: drag;
+  }
+  .app { padding-top: env(titlebar-area-height, 32px); }
+}
+.titlebar svg { width: 16px; height: 16px; flex: none; }
+
+/* Year heading and toolbar */
+header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 4px 8px 6px 20px;
+  flex: none;
+}
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px; line-height: 36px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.toolbar { display: flex; align-items: center; gap: 2px; }
+.btn {
+  font: inherit; font-size: 14px; color: var(--text-1);
+  background: transparent; border: 0; border-radius: 4px;
+  height: 36px; min-width: 36px; padding: 0 9px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: default;
+}
+.btn:hover { background: var(--subtle-hover); }
+.btn:active { background: var(--subtle-press); color: var(--text-2); }
+.btn:focus-visible { outline: 2px solid var(--focus-outer); outline-offset: 1px; box-shadow: inset 0 0 0 1px var(--focus-inner); }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn .hash { font-family: "Segoe UI", system-ui, sans-serif; font-weight: 600; font-size: 16px; line-height: 1; width: 16px; text-align: center; }
+.btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.btn[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--accent) 90%, var(--base)); }
+.sep { width: 1px; height: 20px; background: var(--divider); margin: 0 6px; }
+
+/* Months area */
+.stage {
+  flex: 1; min-height: 0;
+  background: var(--layer);
+  border-top: 1px solid var(--layer-stroke);
+  display: flex; align-items: center; justify-content: center;
+  padding: 10px 16px 14px;
+  overflow: hidden;
+}
+.months {
+  display: grid;
+  column-gap: 28px; row-gap: 14px;
+  grid-template-columns: repeat(var(--cols, 4), 212px);
+}
+.month {
+  width: 212px; height: 196px;
+  display: grid;
+  grid-template-columns: 24px repeat(7, 26px);
+  grid-template-rows: 28px 20px repeat(6, 24px);
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+.no-weeks .month { grid-template-columns: 0 repeat(7, 26px); }
+.no-weeks .wk { visibility: hidden; }
+.month h2 {
+  grid-column: 2 / span 7; margin: 0 0 0 6px; align-self: center;
+  font-size: 14px; font-weight: 600; color: var(--text-1);
+}
+.dh { font-size: 11px; color: var(--text-2); display: grid; place-items: center; }
+.wk { font-size: 10px; color: var(--text-3); display: flex; align-items: center; overflow: hidden; }
+.d { display: grid; place-items: center; font-size: 12px; color: var(--text-1); position: relative; }
+.d.we { color: var(--text-2); }
+.d.hol { color: var(--holiday); font-weight: 600; }
+.d.today { color: var(--on-accent); font-weight: 600; }
+.d.today::before {
+  content: ""; position: absolute; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); z-index: -1;
+}
+.d.today { z-index: 0; }
+
+/* Holiday tooltip (Fluent style) */
+.tip {
+  position: fixed; z-index: 10; pointer-events: none;
+  background: var(--tip-bg); color: var(--text-1);
+  border: 1px solid var(--tip-stroke); border-radius: 4px;
+  padding: 5px 8px 7px; font-size: 12px; max-width: 280px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.14);
+}
+.tip[hidden] { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn { transition: background-color 83ms linear; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="titlebar" aria-hidden="true">
+    <svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="13" rx="2.5" fill="#f4f7fb" stroke="#8aa0b8" stroke-width=".6"/><path d="M3.5 2h9A2.5 2.5 0 0 1 15 4.5V6H1V4.5A2.5 2.5 0 0 1 3.5 2z" fill="#0f6cbd"/><rect x="4.2" y="1" width="1.6" height="3" rx=".8" fill="#0b4f94"/><rect x="10.2" y="1" width="1.6" height="3" rx=".8" fill="#0b4f94"/><rect x="3" y="7.5" width="2.6" height="2.4" rx=".6" fill="#afc0d4"/><rect x="6.7" y="7.5" width="2.6" height="2.4" rx=".6" fill="#afc0d4"/><rect x="10.4" y="7.5" width="2.6" height="2.4" rx=".6" fill="#afc0d4"/><rect x="3" y="11" width="2.6" height="2.4" rx=".6" fill="#afc0d4"/><rect x="6.7" y="11" width="2.6" height="2.4" rx=".6" fill="#0f6cbd"/><rect x="10.4" y="11" width="2.6" height="2.4" rx=".6" fill="#afc0d4"/></svg>
+    <span>Year Calendar</span>
+  </div>
+
+  <header>
+    <h1 id="year">2026</h1>
+    <div class="toolbar" role="toolbar" aria-label="Calendar">
+      <button class="btn" id="weeks" aria-pressed="true" title="Show or hide week numbers" aria-label="Week numbers"><span class="hash" aria-hidden="true">#</span></button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="btn" id="today" title="Go to this year (T)">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2 6.2h12" stroke="currentColor" stroke-width="1.2"/><path d="M5 1.8v2.4M11 1.8v2.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="9" y="9" width="3" height="3" rx=".6" fill="currentColor"/></svg>
+        Today
+      </button>
+      <button class="btn" id="prev" title="Previous year (Up or Left)" aria-label="Previous year">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 10.25 8 5.75l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="btn" id="next" title="Next year (Down or Right)" aria-label="Next year">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 5.75 8 10.25l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="months" id="months" aria-live="polite"></div>
+  </main>
+</div>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<noscript>Year Calendar needs JavaScript switched on.</noscript>
+
+<script>
+"use strict";
+
+/* ---------- Dates (all in UTC so time zones and clock changes can't shift a day) ---------- */
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_LETTERS = ["Mo","Tu","We","Th","Fr","Sa","Su"];
+const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const utc = (y, m, d) => new Date(Date.UTC(y, m, d));            // m is 0-11
+const addDays = (date, n) => new Date(date.getTime() + n * 86400000);
+const mondayIndex = date => (date.getUTCDay() + 6) % 7;          // Monday = 0 ... Sunday = 6
+const key = date => date.getUTCFullYear() + "-" + (date.getUTCMonth() + 1) + "-" + date.getUTCDate();
+const daysIn = (y, m) => utc(y, m + 1, 0).getUTCDate();
+
+/** ISO 8601 week number (weeks start Monday; week 1 contains the year's first Thursday). */
+function isoWeek(date) {
+  const thursday = addDays(date, 3 - mondayIndex(date));
+  const jan1 = utc(thursday.getUTCFullYear(), 0, 1);
+  return Math.floor((thursday - jan1) / 86400000 / 7) + 1;
+}
+
+/** Easter Sunday (anonymous Gregorian algorithm). */
+function easterSunday(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  return utc(y, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1);
+}
+
+/* ---------- England & Wales bank holidays (checked against gov.uk/bank-holidays, 2019-2028) ---------- */
+const FIRST_HOLIDAY_YEAR = 1978; // the full modern set dates from 1978; earlier years show none
+const ONE_OFFS = [
+  [1981, 6, 29, "Royal wedding (Prince Charles and Lady Diana Spencer)"],
+  [1999, 11, 31, "Millennium celebrations"],
+  [2002, 5, 3, "Golden Jubilee of Queen Elizabeth II"],
+  [2011, 3, 29, "Royal wedding (Prince William and Catherine Middleton)"],
+  [2012, 5, 5, "Diamond Jubilee of Queen Elizabeth II"],
+  [2022, 5, 3, "Platinum Jubilee bank holiday"],
+  [2022, 8, 19, "State Funeral of Queen Elizabeth II"],
+  [2023, 4, 8, "Coronation of King Charles III"],
+  // Add future one-off bank holidays here: [year, month (0 = January), day, "Name"],
+];
+const MOVED_EARLY_MAY = { 1995: [4, 8], 2020: [4, 8] };            // VE Day anniversaries
+const MOVED_SPRING = { 2002: [5, 4], 2012: [5, 4], 2022: [5, 2] };  // jubilees
+
+const nextMonday = date => addDays(date, (7 - mondayIndex(date)) % 7);
+const lastMonday = (y, m) => { const last = utc(y, m, daysIn(y, m)); return addDays(last, -mondayIndex(last)); };
+
+function bankHolidays(y) {
+  const out = new Map();
+  if (y < FIRST_HOLIDAY_YEAR) return out;
+  const add = (date, name) => out.set(key(date), name);
+
+  const newYear = utc(y, 0, 1);
+  if (mondayIndex(newYear) >= 5) add(nextMonday(newYear), "New Year's Day (substitute day)");
+  else add(newYear, "New Year's Day");
+
+  const easter = easterSunday(y);
+  add(addDays(easter, -2), "Good Friday");
+  add(addDays(easter, 1), "Easter Monday");
+
+  if (MOVED_EARLY_MAY[y]) add(utc(y, ...MOVED_EARLY_MAY[y]), "Early May bank holiday (VE Day)");
+  else add(nextMonday(utc(y, 4, 1)), "Early May bank holiday");
+
+  add(MOVED_SPRING[y] ? utc(y, ...MOVED_SPRING[y]) : lastMonday(y, 4), "Spring bank holiday");
+  add(lastMonday(y, 7), "Summer bank holiday");
+
+  switch (utc(y, 11, 25).getUTCDay()) {
+    case 5: add(utc(y, 11, 25), "Christmas Day"); add(utc(y, 11, 28), "Boxing Day (substitute day)"); break;
+    case 6: add(utc(y, 11, 27), "Christmas Day (substitute day)"); add(utc(y, 11, 28), "Boxing Day (substitute day)"); break;
+    case 0: add(utc(y, 11, 26), "Boxing Day"); add(utc(y, 11, 27), "Christmas Day (substitute day)"); break;
+    default: add(utc(y, 11, 25), "Christmas Day"); add(utc(y, 11, 26), "Boxing Day");
+  }
+
+  for (const [oy, om, od, name] of ONE_OFFS) if (oy === y) add(utc(oy, om, od), name);
+  return out;
+}
+
+/* ---------- Drawing ---------- */
+const $ = id => document.getElementById(id);
+const monthsEl = $("months"), stageEl = $("stage"), weeksBtn = $("weeks"), tip = $("tip");
+const todayLocal = () => { const n = new Date(); return utc(n.getFullYear(), n.getMonth(), n.getDate()); };
+
+let year = new Date().getFullYear();
+let today = todayLocal();
+let showWeeks = true;
+try { showWeeks = localStorage.getItem("yc-weeks") !== "0"; } catch (e) {}
+
+function render() {
+  $("year").textContent = year;
+  document.title = "Year Calendar " + year;
+  const holidays = bankHolidays(year);
+  const todayKey = key(today);
+  let html = "";
+
+  for (let m = 0; m < 12; m++) {
+    html += '<section class="month" aria-label="' + MONTHS[m] + " " + year + '"><h2>' + MONTHS[m] + "</h2>";
+    html += '<span></span>' + DAY_LETTERS.map(l => '<span class="dh">' + l + "</span>").join("");
+
+    const count = daysIn(year, m);
+    let day = 1 - mondayIndex(utc(year, m, 1));
+    for (let row = 0; row < 6; row++) {
+      const real = day <= count;
+      html += '<span class="wk">' + (real ? isoWeek(utc(year, m, Math.max(day, 1))) : "") + "</span>";
+      for (let col = 0; col < 7; col++, day++) {
+        if (day < 1 || day > count) { html += "<span></span>"; continue; }
+        const date = utc(year, m, day), k = key(date);
+        const name = holidays.get(k);
+        const cls = k === todayKey ? "d today" : name ? "d hol" : col >= 5 ? "d we" : "d";
+        const label = DAY_NAMES[date.getUTCDay()] + " " + day + " " + MONTHS[m] + " " + year +
+                      (k === todayKey ? ", today" : "") + (name ? ", " + name : "");
+        html += '<span class="' + cls + '" aria-label="' + label + '"' + (name ? ' data-hol="' + name + '"' : "") + ">" + day + "</span>";
+      }
+    }
+    html += "</section>";
+  }
+  monthsEl.innerHTML = html;
+  monthsEl.classList.toggle("no-weeks", !showWeeks);
+  weeksBtn.setAttribute("aria-pressed", String(showWeeks));
+}
+
+/* ---------- Fit the months to the window ---------- */
+const MONTH_W = 212, MONTH_H = 196, GAP_X = 28, GAP_Y = 14;
+const LAYOUTS = [[4, 3], [3, 4], [2, 6], [6, 2]];
+
+function fit() {
+  const style = getComputedStyle(stageEl);
+  const w = stageEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const h = stageEl.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+  if (w <= 0 || h <= 0) return;
+  let best = LAYOUTS[0], bestScale = 0;
+  for (const [cols, rows] of LAYOUTS) {
+    const s = Math.min(w / (cols * MONTH_W + (cols - 1) * GAP_X), h / (rows * MONTH_H + (rows - 1) * GAP_Y));
+    if (s > bestScale) { bestScale = s; best = [cols, rows]; }
+  }
+  monthsEl.style.setProperty("--cols", best[0]);
+  monthsEl.style.zoom = bestScale; // zoom re-lays out text at the new size, so it stays sharp
+}
+new ResizeObserver(fit).observe(stageEl);
+
+/* ---------- Controls ---------- */
+function changeYear(delta) {
+  const next = year + delta;
+  if (next < 1 || next > 9999) return;
+  year = next; hideTip(); render();
+}
+function goToToday() { today = todayLocal(); year = today.getUTCFullYear(); hideTip(); render(); }
+
+$("prev").addEventListener("click", () => changeYear(-1));
+$("next").addEventListener("click", () => changeYear(+1));
+$("today").addEventListener("click", goToToday);
+weeksBtn.addEventListener("click", () => {
+  showWeeks = !showWeeks;
+  try { localStorage.setItem("yc-weeks", showWeeks ? "1" : "0"); } catch (e) {}
+  render();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  switch (e.key) {
+    case "ArrowLeft": case "ArrowUp": case "PageUp": changeYear(-1); break;
+    case "ArrowRight": case "ArrowDown": case "PageDown": changeYear(+1); break;
+    case "t": case "T": case "Home": goToToday(); break;
+    default: return;
+  }
+  e.preventDefault();
+});
+
+/* ---------- Holiday tooltip ---------- */
+function hideTip() { tip.hidden = true; }
+monthsEl.addEventListener("mouseover", e => {
+  const cell = e.target.closest("[data-hol]");
+  if (!cell) { hideTip(); return; }
+  tip.textContent = cell.dataset.hol;
+  tip.hidden = false;
+  const r = cell.getBoundingClientRect(), t = tip.getBoundingClientRect();
+  let left = r.left + r.width / 2 - t.width / 2;
+  left = Math.max(8, Math.min(left, innerWidth - t.width - 8));
+  let top = r.top - t.height - 8;
+  if (top < 8) top = r.bottom + 8;
+  tip.style.left = left + "px";
+  tip.style.top = top + "px";
+});
+monthsEl.addEventListener("mouseleave", hideTip);
+
+/* ---------- Keep "today" right if left open past midnight ---------- */
+setInterval(() => {
+  const now = todayLocal();
+  if (now.getTime() !== today.getTime()) { today = now; render(); }
+}, 60000);
+
+render();
+fit();
+
+/* ---------- Work offline once installed ---------- */
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
