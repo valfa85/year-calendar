@@ -11,11 +11,15 @@
 <!-- Colour of the window's title bar / caption buttons when installed as an app -->
 <meta name="theme-color" content="#f3f3f3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#202020" media="(prefers-color-scheme: dark)">
+<script>
+  // Apply a saved Light/Dark choice before the page draws, so it doesn't flash.
+  try { var t = localStorage.getItem("yc-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
 <style>
 /*
-  Year Calendar: Windows 11 (Fluent) look in a web page.
-  Colours are Windows 11's own light/dark values. The months are drawn at a fixed
-  design size and zoomed to fit the window, switching between 4x3, 3x4, 2x6 and 6x2.
+  Year Calendar 1.1: Windows 11 (Fluent) look in a web page.
+  Colours are Windows 11's own light/dark values.
+  The months are drawn at a fixed design size and zoomed to fit (4x3, 3x4, 2x6 or 6x2).
 */
 :root {
   --base: #f3f3f3;                       /* window background (Mica stand-in) */
@@ -24,40 +28,46 @@
   --text-1: rgba(0, 0, 0, 0.896);
   --text-2: rgba(0, 0, 0, 0.606);
   --text-3: rgba(0, 0, 0, 0.446);
+  --text-4: rgba(0, 0, 0, 0.361);
   --subtle-hover: rgba(0, 0, 0, 0.0373);
   --subtle-press: rgba(0, 0, 0, 0.0241);
   --divider: rgba(0, 0, 0, 0.0803);
+  --weekend: rgba(0, 0, 0, 0.035);
   --accent: #005fb8;
   --on-accent: #ffffff;
   --holiday: #0f7b0f;
-  --tip-bg: #f9f9f9;
-  --tip-stroke: rgba(0, 0, 0, 0.0578);
+  --holiday-bg: #dff6dd;
+  --flyout: #f9f9f9;
+  --flyout-stroke: rgba(0, 0, 0, 0.0578);
+  --shadow: rgba(0, 0, 0, 0.14);
   --focus-outer: rgba(0, 0, 0, 0.896);
   --focus-inner: #ffffff;
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
   color-scheme: light;
 }
+/* Dark: when Windows is dark (unless Light is chosen in the menu), or when Dark is chosen */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --base: #202020;
-    --layer: rgba(58, 58, 58, 0.3);
-    --layer-stroke: rgba(0, 0, 0, 0.1);
-    --text-1: #ffffff;
-    --text-2: rgba(255, 255, 255, 0.786);
-    --text-3: rgba(255, 255, 255, 0.544);
-    --subtle-hover: rgba(255, 255, 255, 0.0605);
-    --subtle-press: rgba(255, 255, 255, 0.0419);
-    --divider: rgba(255, 255, 255, 0.0837);
-    --accent: #60cdff;
-    --on-accent: #000000;
-    --holiday: #6ccb5f;
-    --tip-bg: #2c2c2c;
-    --tip-stroke: rgba(0, 0, 0, 0.2);
-    --focus-outer: #ffffff;
-    --focus-inner: rgba(0, 0, 0, 0.7);
+  :root:not([data-theme="light"]) {
+    --base: #202020; --layer: rgba(58, 58, 58, 0.3); --layer-stroke: rgba(0, 0, 0, 0.1);
+    --text-1: #ffffff; --text-2: rgba(255, 255, 255, 0.786); --text-3: rgba(255, 255, 255, 0.544); --text-4: rgba(255, 255, 255, 0.3628);
+    --subtle-hover: rgba(255, 255, 255, 0.0605); --subtle-press: rgba(255, 255, 255, 0.0419);
+    --divider: rgba(255, 255, 255, 0.0837); --weekend: rgba(255, 255, 255, 0.04);
+    --accent: #60cdff; --on-accent: #000000; --holiday: #6ccb5f; --holiday-bg: #393d1b;
+    --flyout: #2c2c2c; --flyout-stroke: rgba(0, 0, 0, 0.2); --shadow: rgba(0, 0, 0, 0.26);
+    --focus-outer: #ffffff; --focus-inner: rgba(0, 0, 0, 0.7);
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --base: #202020; --layer: rgba(58, 58, 58, 0.3); --layer-stroke: rgba(0, 0, 0, 0.1);
+  --text-1: #ffffff; --text-2: rgba(255, 255, 255, 0.786); --text-3: rgba(255, 255, 255, 0.544); --text-4: rgba(255, 255, 255, 0.3628);
+  --subtle-hover: rgba(255, 255, 255, 0.0605); --subtle-press: rgba(255, 255, 255, 0.0419);
+  --divider: rgba(255, 255, 255, 0.0837); --weekend: rgba(255, 255, 255, 0.04);
+  --accent: #60cdff; --on-accent: #000000; --holiday: #6ccb5f; --holiday-bg: #393d1b;
+  --flyout: #2c2c2c; --flyout-stroke: rgba(0, 0, 0, 0.2); --shadow: rgba(0, 0, 0, 0.26);
+  --focus-outer: #ffffff; --focus-inner: rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -71,6 +81,7 @@ body {
   user-select: none;
   -webkit-user-select: none;
 }
+[hidden] { display: none !important; }
 .app { height: 100%; display: flex; flex-direction: column; }
 
 /* Title bar strip: only shown when installed as an app with the title bar overlay */
@@ -89,17 +100,19 @@ body {
 }
 .titlebar svg { width: 16px; height: 16px; flex: none; }
 
-/* Year heading and toolbar */
+/* Heading and toolbar */
 header {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 4px 8px 6px 20px;
   flex: none;
 }
+.heading { display: flex; align-items: center; gap: 10px; min-width: 0; }
 h1 {
   margin: 0;
   font-family: var(--font-display);
   font-size: 28px; line-height: 36px; font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .toolbar { display: flex; align-items: center; gap: 2px; }
 .btn {
@@ -113,19 +126,45 @@ h1 {
 .btn:active { background: var(--subtle-press); color: var(--text-2); }
 .btn:focus-visible { outline: 2px solid var(--focus-outer); outline-offset: 1px; box-shadow: inset 0 0 0 1px var(--focus-inner); }
 .btn svg { width: 16px; height: 16px; flex: none; }
-.btn .hash { font-family: "Segoe UI", system-ui, sans-serif; font-weight: 600; font-size: 16px; line-height: 1; width: 16px; text-align: center; }
-.btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-.btn[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--accent) 90%, var(--base)); }
 .sep { width: 1px; height: 20px; background: var(--divider); margin: 0 6px; }
 
-/* Months area */
+/* "More options" menu (Windows 11 menu flyout style) */
+.more { position: relative; }
+.menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 20;
+  min-width: 220px; padding: 4px;
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--flyout); border: 1px solid var(--flyout-stroke); border-radius: 8px;
+  box-shadow: 0 8px 16px var(--shadow);
+}
+.mi {
+  font: inherit; font-size: 14px; color: var(--text-1);
+  background: transparent; border: 0; border-radius: 4px;
+  height: 32px; padding: 0 14px 0 10px;
+  display: flex; align-items: center; gap: 10px;
+  text-align: left; white-space: nowrap; cursor: default;
+}
+.mi:hover, .mi:focus-visible { background: var(--subtle-hover); }
+.mi:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--focus-outer); }
+.mi svg { width: 16px; height: 16px; flex: none; visibility: hidden; }
+.mi[aria-checked="true"] svg { visibility: visible; }
+.msep { height: 1px; background: var(--divider); margin: 3px -4px; }
+.mlabel { font-size: 12px; color: var(--text-2); padding: 6px 10px 2px 36px; }
+.mver { font-size: 12px; color: var(--text-3); padding: 6px 10px 6px 36px; }
+
+/* Content layer */
 .stage {
   flex: 1; min-height: 0;
   background: var(--layer);
   border-top: 1px solid var(--layer-stroke);
+  overflow: hidden;
+  position: relative;
+}
+
+.yearview {
+  height: 100%;
   display: flex; align-items: center; justify-content: center;
   padding: 10px 16px 14px;
-  overflow: hidden;
 }
 .months {
   display: grid;
@@ -147,29 +186,33 @@ h1 {
   font-size: 14px; font-weight: 600; color: var(--text-1);
 }
 .dh { font-size: 11px; color: var(--text-2); display: grid; place-items: center; }
+.dh.we { font-weight: 700; }
 .wk { font-size: 10px; color: var(--text-3); display: flex; align-items: center; overflow: hidden; }
-.d { display: grid; place-items: center; font-size: 12px; color: var(--text-1); position: relative; }
-.d.we { color: var(--text-2); }
+.d { display: grid; place-items: center; font-size: 12px; color: var(--text-1); position: relative; z-index: 0; }
+.d.we { color: var(--text-2); background: var(--weekend); }  /* shading only on real weekend days */
+.d.we:not(.out) { font-weight: 700; }  /* this month's Saturdays and Sundays in bold */
+.d.out { color: var(--text-4); }  /* days from the previous/next month */
+.d.out { font-weight: 400; }
 .d.hol { color: var(--holiday); font-weight: 600; }
 .d.today { color: var(--on-accent); font-weight: 600; }
-.d.today::before {
-  content: ""; position: absolute; width: 22px; height: 22px; border-radius: 50%;
-  background: var(--accent); z-index: -1;
+.d.hol::before, .d.today::before {
+  content: ""; position: absolute; z-index: -1;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--holiday-bg);
 }
-.d.today { z-index: 0; }
+.d.today::before { background: var(--accent); }
 
 /* Holiday tooltip (Fluent style) */
 .tip {
   position: fixed; z-index: 10; pointer-events: none;
-  background: var(--tip-bg); color: var(--text-1);
-  border: 1px solid var(--tip-stroke); border-radius: 4px;
+  background: var(--flyout); color: var(--text-1);
+  border: 1px solid var(--flyout-stroke); border-radius: 4px;
   padding: 5px 8px 7px; font-size: 12px; max-width: 280px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 4px 8px var(--shadow);
 }
-.tip[hidden] { display: none; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .btn { transition: background-color 83ms linear; }
+  .btn, .mi { transition: background-color 83ms linear; }
 }
 </style>
 </head>
@@ -180,26 +223,47 @@ h1 {
     <span>Year Calendar</span>
   </div>
 
-  <header>
-    <h1 id="year">2026</h1>
+  <header id="header">
+    <div class="heading">
+      <h1 id="title">2026</h1>
+    </div>
     <div class="toolbar" role="toolbar" aria-label="Calendar">
-      <button class="btn" id="weeks" aria-pressed="true" title="Show or hide week numbers" aria-label="Week numbers"><span class="hash" aria-hidden="true">#</span></button>
-      <span class="sep" aria-hidden="true"></span>
-      <button class="btn" id="today" title="Go to this year (T)">
+      <button class="btn" id="prev">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.25 3.5 5.75 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="btn" id="today">
         <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2 6.2h12" stroke="currentColor" stroke-width="1.2"/><path d="M5 1.8v2.4M11 1.8v2.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="9" y="9" width="3" height="3" rx=".6" fill="currentColor"/></svg>
         Today
       </button>
-      <button class="btn" id="prev" title="Previous year (Up or Left)" aria-label="Previous year">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 10.25 8 5.75l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <button class="btn" id="next">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.75 3.5 10.25 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <button class="btn" id="next" title="Next year (Down or Right)" aria-label="Next year">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 5.75 8 10.25l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <span class="sep" aria-hidden="true"></span>
+      <div class="more">
+        <button class="btn" id="moreBtn" title="More options" aria-label="More options" aria-haspopup="menu" aria-expanded="false" aria-controls="menu">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.2" fill="currentColor"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="13" cy="8" r="1.2" fill="currentColor"/></svg>
+        </button>
+        <div class="menu" id="menu" role="menu" aria-label="Options" hidden>
+          <button class="mi" id="optHols" role="menuitemcheckbox" aria-checked="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Show UK bank holidays</button>
+          <button class="mi" id="optWeeks" role="menuitemcheckbox" aria-checked="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Show week numbers</button>
+          <div class="msep" role="separator"></div>
+          <div class="mlabel" aria-hidden="true">Theme</div>
+          <div role="group" aria-label="Theme" style="display:contents">
+            <button class="mi" id="themeSystem" role="menuitemradio" aria-checked="true" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="currentColor"/></svg>Follow Windows</button>
+            <button class="mi" id="themeLight" role="menuitemradio" aria-checked="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="currentColor"/></svg>Light</button>
+            <button class="mi" id="themeDark" role="menuitemradio" aria-checked="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="currentColor"/></svg>Dark</button>
+          </div>
+          <div class="msep" role="separator"></div>
+          <div class="mver" id="version">Year Calendar</div>
+        </div>
+      </div>
     </div>
   </header>
 
   <main class="stage" id="stage">
-    <div class="months" id="months" aria-live="polite"></div>
+    <div class="yearview" id="yearview">
+      <div class="months" id="months"></div>
+    </div>
   </main>
 </div>
 <div class="tip" id="tip" role="tooltip" hidden></div>
@@ -208,10 +272,11 @@ h1 {
 
 <script>
 "use strict";
+const VERSION = "1.2";
 
 /* ---------- Dates (all in UTC so time zones and clock changes can't shift a day) ---------- */
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const DAY_LETTERS = ["Mo","Tu","We","Th","Fr","Sa","Su"];
+const DAY_LETTERS = ["M","T","W","T","F","S","S"];
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const utc = (y, m, d) => new Date(Date.UTC(y, m, d));            // m is 0-11
 const addDays = (date, n) => new Date(date.getTime() + n * 86400000);
@@ -284,47 +349,76 @@ function bankHolidays(y) {
   return out;
 }
 
-/* ---------- Drawing ---------- */
+
+/* ---------- State ---------- */
 const $ = id => document.getElementById(id);
-const monthsEl = $("months"), stageEl = $("stage"), weeksBtn = $("weeks"), tip = $("tip");
+const monthsEl = $("months"), yearViewEl = $("yearview"), stageEl = $("stage"), tip = $("tip"), titleEl = $("title");
+const prevBtn = $("prev"), nextBtn = $("next"), todayBtn = $("today");
+const moreBtn = $("moreBtn"), menu = $("menu"), optHols = $("optHols"), optWeeks = $("optWeeks");
+const themeItems = [$("themeSystem"), $("themeLight"), $("themeDark")];
 const todayLocal = () => { const n = new Date(); return utc(n.getFullYear(), n.getMonth(), n.getDate()); };
 
-let year = new Date().getFullYear();
+// Options are remembered on this PC (localStorage); if storage isn't available, defaults are used.
+function load(name, fallback) { try { const v = localStorage.getItem(name); return v === null ? fallback : v; } catch (e) { return fallback; } }
+function save(name, value) { try { localStorage.setItem(name, value); } catch (e) {} }
+
 let today = todayLocal();
-let showWeeks = true;
-try { showWeeks = localStorage.getItem("yc-weeks") !== "0"; } catch (e) {}
+let year = today.getUTCFullYear();
+let showWeeks = load("yc-weeks", "1") !== "0";
+let showHols = load("yc-hols", "1") !== "0";
+let theme = load("yc-theme", "system");
+
+$("version").textContent = "Year Calendar " + VERSION;
+prevBtn.title = "Previous year (Left)"; prevBtn.setAttribute("aria-label", "Previous year");
+nextBtn.title = "Next year (Right)"; nextBtn.setAttribute("aria-label", "Next year");
+todayBtn.title = "Go to this year (T)";
+
+/* ---------- Drawing ---------- */
+function dayLabel(date, isToday, holiday) {
+  return DAY_NAMES[date.getUTCDay()] + " " + date.getUTCDate() + " " + MONTHS[date.getUTCMonth()] + " " +
+         date.getUTCFullYear() + (isToday ? ", today" : "") + (holiday ? ", " + holiday : "");
+}
 
 function render() {
-  $("year").textContent = year;
-  document.title = "Year Calendar " + year;
-  const holidays = bankHolidays(year);
+  titleEl.textContent = year;
+  document.title = "Year Calendar – " + year;
+  optHols.setAttribute("aria-checked", String(showHols));
+  optWeeks.setAttribute("aria-checked", String(showWeeks));
+  for (const item of themeItems) item.setAttribute("aria-checked", String(item.dataset.themeChoice === theme));
+  hideTip();
+
+  const holidays = showHols ? bankHolidays(year) : new Map();
   const todayKey = key(today);
   let html = "";
 
   for (let m = 0; m < 12; m++) {
     html += '<section class="month" aria-label="' + MONTHS[m] + " " + year + '"><h2>' + MONTHS[m] + "</h2>";
-    html += '<span></span>' + DAY_LETTERS.map(l => '<span class="dh">' + l + "</span>").join("");
+    html += "<span></span>" + DAY_LETTERS.map((l, i) => '<span class="dh' + (i >= 5 ? " we" : "") + '">' + l + "</span>").join("");
 
     const count = daysIn(year, m);
     let day = 1 - mondayIndex(utc(year, m, 1));
     for (let row = 0; row < 6; row++) {
-      const real = day <= count;
-      html += '<span class="wk">' + (real ? isoWeek(utc(year, m, Math.max(day, 1))) : "") + "</span>";
+      html += '<span class="wk">' + (day <= count ? isoWeek(utc(year, m, Math.max(day, 1))) : "") + "</span>";
       for (let col = 0; col < 7; col++, day++) {
-        if (day < 1 || day > count) { html += "<span></span>"; continue; }
-        const date = utc(year, m, day), k = key(date);
-        const name = holidays.get(k);
-        const cls = k === todayKey ? "d today" : name ? "d hol" : col >= 5 ? "d we" : "d";
-        const label = DAY_NAMES[date.getUTCDay()] + " " + day + " " + MONTHS[m] + " " + year +
-                      (k === todayKey ? ", today" : "") + (name ? ", " + name : "");
-        html += '<span class="' + cls + '" aria-label="' + label + '"' + (name ? ' data-hol="' + name + '"' : "") + ">" + day + "</span>";
+        const rowStarted = day - col <= count;
+        if (!rowStarted) { html += "<span></span>"; continue; }
+        const date = utc(year, m, day); // Date.UTC rolls day 0, -1... back into the previous month and 32... into the next
+        if (day < 1 || day > count) {
+          // Fill the first and last week with the neighbouring months' days, faded
+          html += '<span class="d out' + (col >= 5 ? " we" : "") + '" aria-hidden="true">' + date.getUTCDate() + "</span>";
+          continue;
+        }
+        const k = key(date), name = holidays.get(k), isToday = k === todayKey;
+        const cls = "d" + (col >= 5 ? " we" : "") + (isToday ? " today" : name ? " hol" : "");
+        html += '<span class="' + cls + '" aria-label="' + dayLabel(date, isToday, name) + '"' +
+                (name ? ' data-hol="' + name + '"' : "") + ">" + day + "</span>";
       }
     }
     html += "</section>";
   }
   monthsEl.innerHTML = html;
   monthsEl.classList.toggle("no-weeks", !showWeeks);
-  weeksBtn.setAttribute("aria-pressed", String(showWeeks));
+  fit();
 }
 
 /* ---------- Fit the months to the window ---------- */
@@ -332,9 +426,9 @@ const MONTH_W = 212, MONTH_H = 196, GAP_X = 28, GAP_Y = 14;
 const LAYOUTS = [[4, 3], [3, 4], [2, 6], [6, 2]];
 
 function fit() {
-  const style = getComputedStyle(stageEl);
-  const w = stageEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-  const h = stageEl.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+  const style = getComputedStyle(yearViewEl);
+  const w = yearViewEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const h = yearViewEl.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
   if (w <= 0 || h <= 0) return;
   let best = LAYOUTS[0], bestScale = 0;
   for (const [cols, rows] of LAYOUTS) {
@@ -346,25 +440,26 @@ function fit() {
 }
 new ResizeObserver(fit).observe(stageEl);
 
-/* ---------- Controls ---------- */
+/* ---------- Year navigation ---------- */
 function changeYear(delta) {
   const next = year + delta;
   if (next < 1 || next > 9999) return;
-  year = next; hideTip(); render();
-}
-function goToToday() { today = todayLocal(); year = today.getUTCFullYear(); hideTip(); render(); }
-
-$("prev").addEventListener("click", () => changeYear(-1));
-$("next").addEventListener("click", () => changeYear(+1));
-$("today").addEventListener("click", goToToday);
-weeksBtn.addEventListener("click", () => {
-  showWeeks = !showWeeks;
-  try { localStorage.setItem("yc-weeks", showWeeks ? "1" : "0"); } catch (e) {}
+  year = next;
   render();
-});
+}
+function goToToday() {
+  today = todayLocal();
+  year = today.getUTCFullYear();
+  render();
+}
+
+prevBtn.addEventListener("click", () => changeYear(-1));
+nextBtn.addEventListener("click", () => changeYear(+1));
+todayBtn.addEventListener("click", goToToday);
 
 document.addEventListener("keydown", e => {
   if (e.altKey || e.ctrlKey || e.metaKey) return;
+  if (!menu.hidden) { if (e.key === "Escape") closeMenu(true); return; } // keys belong to the menu while it's open
   switch (e.key) {
     case "ArrowLeft": case "ArrowUp": case "PageUp": changeYear(-1); break;
     case "ArrowRight": case "ArrowDown": case "PageDown": changeYear(+1); break;
@@ -374,11 +469,68 @@ document.addEventListener("keydown", e => {
   e.preventDefault();
 });
 
+/* ---------- Theme ---------- */
+const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+function applyTheme() {
+  const root = document.documentElement;
+  if (theme === "light" || theme === "dark") root.setAttribute("data-theme", theme);
+  else root.removeAttribute("data-theme");
+  const dark = theme === "dark" || (theme === "system" && darkQuery.matches);
+  // Title bar / caption buttons follow this colour when installed as an app
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = dark ? "#202020" : "#f3f3f3";
+}
+darkQuery.addEventListener("change", applyTheme);
+
+/* ---------- More options menu ---------- */
+const menuItems = [optHols, optWeeks, ...themeItems];
+function openMenu(focusFirst) {
+  menu.hidden = false;
+  moreBtn.setAttribute("aria-expanded", "true");
+  hideTip();
+  if (focusFirst) menuItems[0].focus();
+}
+function closeMenu(returnFocus) {
+  if (menu.hidden) return;
+  menu.hidden = true;
+  moreBtn.setAttribute("aria-expanded", "false");
+  if (returnFocus) moreBtn.focus();
+}
+// e.detail is 0 when a button is pressed with the keyboard rather than clicked
+moreBtn.addEventListener("click", e => { if (menu.hidden) openMenu(e.detail === 0); else closeMenu(false); });
+optHols.addEventListener("click", e => {
+  showHols = !showHols; save("yc-hols", showHols ? "1" : "0");
+  render(); closeMenu(e.detail === 0);
+});
+optWeeks.addEventListener("click", e => {
+  showWeeks = !showWeeks; save("yc-weeks", showWeeks ? "1" : "0");
+  render(); closeMenu(e.detail === 0);
+});
+for (const item of themeItems) {
+  item.addEventListener("click", e => {
+    theme = item.dataset.themeChoice; save("yc-theme", theme);
+    applyTheme(); render(); closeMenu(e.detail === 0);
+  });
+}
+menu.addEventListener("keydown", e => {
+  const i = menuItems.indexOf(document.activeElement);
+  if (e.key === "ArrowDown") menuItems[(i + 1) % menuItems.length].focus();
+  else if (e.key === "ArrowUp") menuItems[(i - 1 + menuItems.length) % menuItems.length].focus();
+  else if (e.key === "Home") menuItems[0].focus();
+  else if (e.key === "End") menuItems[menuItems.length - 1].focus();
+  else if (e.key === "Escape") closeMenu(true);
+  else if (e.key === "Tab") { closeMenu(false); return; }
+  else return;
+  e.preventDefault();
+  e.stopPropagation();
+});
+document.addEventListener("pointerdown", e => { if (!e.target.closest(".more")) closeMenu(false); });
+window.addEventListener("blur", () => closeMenu(false));
+
 /* ---------- Holiday tooltip ---------- */
 function hideTip() { tip.hidden = true; }
 monthsEl.addEventListener("mouseover", e => {
   const cell = e.target.closest("[data-hol]");
-  if (!cell) { hideTip(); return; }
+  if (!cell || !menu.hidden) { hideTip(); return; }
   tip.textContent = cell.dataset.hol;
   tip.hidden = false;
   const r = cell.getBoundingClientRect(), t = tip.getBoundingClientRect();
@@ -397,8 +549,8 @@ setInterval(() => {
   if (now.getTime() !== today.getTime()) { today = now; render(); }
 }, 60000);
 
+applyTheme();
 render();
-fit();
 
 /* ---------- Work offline once installed ---------- */
 if ("serviceWorker" in navigator && location.protocol === "https:") {

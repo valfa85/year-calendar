@@ -1,7 +1,7 @@
 // Lets Year Calendar open without an internet connection once installed.
 // Online: always fetches the latest version (so edits you publish show up next launch).
 // Offline: uses the last saved copy.
-const CACHE = "year-calendar-v2";
+const CACHE = "year-calendar-1.2";
 const FILES = [
   "./",
   "./index.html",
